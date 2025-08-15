@@ -347,17 +347,17 @@ def remove_apn(ctx, apn):
 @cli.command()
 @click.option('--imsi', 'imsi', help='Show only a single subscriber.')
 @click.option('-l', 'display', flag_value='long', help='Long output, show all fields.')
-@click.option('-b', 'display', flag_value='brief', help='brief output, show AMBR, QCI, ARP.')
+@click.option('-b', 'display', flag_value='brief', help='brief output, show AMBR, MSISDN, enabled, roaming_enabled, default_apn')
 @click.option('-i', 'display', flag_value='imsi', help='Show only the imsi of a subscriber')
 @click.option('--limit', help='Limit output of subscribers', default=100, type=int)
 @click.option('--page', help='Page through subscribers', default=0, type=int)
 @click.pass_context
 def list_subscribers(ctx, imsi, display, page, limit):
-    """ list subscriber
+    """ list subscribers
 
-        The brief output shows AMBR, QCI, ARP.
+        The brief output shows AMBR, MSISDN, enabled, roaming_enabled, default_apn.
         The long output shows all properties.
-        The id output only shows only a single line
+        The imsi output only shows only a single line
     """
 
     with httpx.Client(headers=get_headers(ctx)) as client:
