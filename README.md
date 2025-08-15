@@ -48,6 +48,5 @@ pyhss add-subscriber 999420000000013 \
 
 - subscriber: add support to update fields
 - apn: add support to update fields
-- ims: add support to add/remove/list/set IMS related objects
 - auc: add/remove/list/set of the AUC object
 

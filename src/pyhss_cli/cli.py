@@ -205,6 +205,25 @@ def get_subscriber(client, api, imsi) -> dict | None:
 
     return sub_obj
 
+def get_ims_subscriber(client, api, imsi=None, msisdn=None) -> dict | None:
+    try:
+        if imsi:
+            resp = client.get(f'{api}/ims_subscriber/ims_subscriber_imsi/{imsi}')
+        elif msisdn:
+            resp = client.get(f'{api}/ims_subscriber/ims_subscriber_msisdn/{msisdn}')
+        else:
+            return None
+
+        resp.raise_for_status()
+        sub_obj = resp.json()
+    except httpx.HTTPStatusError as exp:
+        if exp.response.status_code == 404:
+            return None
+        click.echo(f"Failed to get the subscriber {imsi} from Subscriber, PyHSS responded with HTTP {exp.response.status_code}. {exp.response.content}")
+        raise
+
+    return sub_obj
+
 def get_auc(client, api, imsi) -> dict | None:
     try:
         resp = client.get(f'{api}/auc/imsi/{imsi}')
@@ -476,3 +495,144 @@ def list_apns(ctx, apn, display):
         for apn in apns:
             click.echo(f"{apn['apn']}: id {apn['apn_id']}")
 
+@cli.command()
+@click.argument('imsi', type=str)
+@click.option('--msisdn', help='MSISDN (first is the primary)', multiple=True, required=True, type=str)
+@click.option('--icf', help='ICF (Initial Filter Criteria) path to the xml on the HSS', type=str)
+@click.pass_context
+def add_ims_subscriber(ctx, imsi, msisdn, icf):
+
+    with httpx.Client(headers=get_headers(ctx)) as client:
+        api = ctx.obj['API']
+
+        sub_obj = get_subscriber(client, api, imsi)
+        if not sub_obj:
+            click.echo(f"Couldn't find the subscriber {imsi} in the subscriber DB! Please add the subscriber with `add-subscriber`")
+            sys.exit(1)
+
+        primary_msisdn = msisdn[0]
+        additional = list(msisdn)[1:]
+        additional = [str(x) for x in additional]
+        additional = ','.join(additional)
+
+        ims_obj = {
+            'imsi': imsi,
+            'msisdn': primary_msisdn,
+            'msisdn_list': additional,
+        }
+
+        try:
+            resp = client.put(f'{api}/ims_subscriber/', json=ims_obj)
+            subscriber_obj = resp.json()
+            resp.raise_for_status()
+        except httpx.HTTPStatusError as exp:
+            click.echo(f"Failed to add the IMS subscriber {imsi}, PyHSS responded with HTTP {exp.response.status_code} {exp.response.content}")
+            sys.exit(1)
+
+        LOG.debug("IMS Subscriber added: %s", subscriber_obj)
+        click.echo(f"IMS subscriber {imsi} added under id: {subscriber_obj['ims_subscriber_id']}")
+
+@cli.command()
+@click.argument('imsi', type=str)
+@click.pass_context
+def remove_ims_subscriber(ctx, imsi):
+    with httpx.Client(headers=get_headers(ctx)) as client:
+        api = ctx.obj['API']
+
+        ims_obj = get_ims_subscriber(client, api, imsi)
+        if not ims_obj:
+            click.echo(f"Couldn't find IMS subscriber {imsi}. Does not exist!")
+            sys.exit(1)
+        print(f"Found subscriber {ims_obj}")
+
+        try:
+            resp = client.delete(f'{api}/ims_subscriber/{ims_obj["ims_subscriber_id"]}')
+            result = resp.json()
+            resp.raise_for_status()
+        except httpx.HTTPStatusError as exp:
+            click.echo(f"Failed to remove IMS subscriber {imsi}, PyHSS responded with HTTP {exp.response.status_code}. {exp.response.content}")
+            sys.exit(1)
+
+    LOG.debug("Removing ims returned %s", result)
+    if failed_result(result):
+        raise RuntimeError(f"Couldn't delete IMS subscriber {imsi} / id {ims_obj['ims_subscriber_id']}")
+
+@cli.command()
+@click.option('--imsi', 'imsi', help='Show only a single subscriber by IMSI.')
+@click.option('--msisdn', 'msisdn', help='Show only a single subscriber by MSISDN.')
+@click.option('-l', 'display', flag_value='long', help='Long output, show all fields.')
+@click.option('-b', 'display', flag_value='brief', help='brief output, show AMBR, QCI, ARP.')
+@click.option('-i', 'display', flag_value='imsi', help='Show only the imsi of a subscriber')
+@click.option('--limit', help='Limit output of subscribers', default=100, type=int)
+@click.option('--page', help='Page through subscribers', default=0, type=int)
+@click.pass_context
+def list_ims_subscribers(ctx, imsi, msisdn, display, page, limit):
+    """ list ims subscribers
+
+        The brief output shows AMBR, QCI, ARP.
+        The long output shows all properties.
+        The id output only shows only a single line
+    """
+
+    if imsi and msisdn:
+        click.echo("Can't use both --imsi and --msisdn to filter for an IMS subscriber.")
+        sys.exit(1)
+
+    with httpx.Client(headers=get_headers(ctx)) as client:
+        api = ctx.obj['API']
+
+        if imsi:
+            subscriber = get_ims_subscriber(client, api, imsi=imsi)
+            if not subscriber:
+                click.echo(f"Couldn't find subscriber by IMSI {imsi}")
+                sys.exit(1)
+            subscribers = [subscriber]
+        elif msisdn:
+            subscriber = get_ims_subscriber(client, api, msisdn=msisdn)
+            if not subscriber:
+                click.echo(f"Couldn't find subscriber by MSISDN {msisdn}")
+                sys.exit(1)
+            subscribers = [subscriber]
+        else:
+            try:
+                resp = client.get(f'{api}/ims_subscriber/list', params=dict(page_size=limit, page=page))
+                resp.raise_for_status()
+                subscribers = resp.json()
+            except httpx.HTTPStatusError as exp:
+                click.echo(f"Failed to list IMS subscribers, PyHSS responded with HTTP {exp.response.status_code}. {exp.response.content}")
+                raise
+
+    # TODO: sorting of fields
+    brief_fields = [
+        'imsi',
+        'msisdn',
+        'msisdn_list',
+        'msisdn',
+        'pcscf',
+        'scscf',
+        'scscf_timestamp',
+    ]
+
+    # No display option is selected
+    if not display:
+        if imsi:
+            display = 'brief'
+        else:
+            display = 'imsi'
+
+    if display == 'long':
+        for sub in subscribers:
+            for field in sub:
+                if field == 'imsi':
+                    continue
+
+                click.echo(f"{sub['imsi']}, {field}: {sub[field]}")
+
+    elif display == 'brief':
+        for sub in subscribers:
+            for field in brief_fields:
+                click.echo(f"{sub['imsi']}, {field}: {sub[field]}")
+
+    elif display == 'imsi':
+        for sub in subscribers:
+            click.echo(f"{sub['imsi']}")
