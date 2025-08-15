@@ -204,6 +204,8 @@ def get_subscriber(client, api, imsi) -> dict | None:
         resp.raise_for_status()
         sub_obj = resp.json()
     except httpx.HTTPStatusError as exp:
+        if exp.response.status_code == 404:
+            return None
         click.echo(f"Failed to get the subscriber {imsi} from Subscriber, PyHSS responded with HTTP {exp.response.status_code}. {exp.response.content}")
         raise
 
@@ -215,6 +217,8 @@ def get_auc(client, api, imsi) -> dict | None:
         resp.raise_for_status()
         auc_obj = resp.json()
     except httpx.HTTPStatusError as exp:
+        if exp.response.status_code == 404:
+            return None
         click.echo(f"Failed to get the subscriber {imsi} from AUC, PyHSS responded with HTTP {exp.response.status_code}. {exp.response.content}")
         raise
 
