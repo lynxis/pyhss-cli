@@ -192,12 +192,6 @@ def remove_subscriber(ctx, imsi):
     if failed_result(result):
         raise RuntimeError(f"Couldn't delete subscriber {imsi} / id {subscriber_obj['subscriber_id']}")
 
-# add subscriber --imsi --key (--opc (or) --op) [--sqn] [--default-apn] (option iccid)
-# remove subscriber --imsi (removes a subscriber)
-
-# enable ims --imsi
-# disable ims --imsi
-
 def get_subscriber(client, api, imsi) -> dict | None:
     try:
         resp = client.get(f'{api}/subscriber/imsi/{imsi}')
@@ -284,7 +278,6 @@ def convert_mbit(bandwidth: str) -> int:
 
     return int(value) * (10 ** expo)
 
-# add apn
 @cli.command()
 @click.argument('apn', type=str)
 @click.option('--dl', default='150mbit', help='The maximum APN bandwidth downlink (towards phone) (AMBR DL) ', type=str)
