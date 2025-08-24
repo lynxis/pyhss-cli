@@ -498,7 +498,7 @@ def list_apns(ctx, apn, display):
 @cli.command()
 @click.argument('imsi', type=str)
 @click.option('--msisdn', help='MSISDN (first is the primary)', multiple=True, required=True, type=str)
-@click.option('--icf', help='ICF (Initial Filter Criteria) path to the xml on the HSS', type=str)
+@click.option('--icf', help='ICF (Initial Filter Criteria) path to the xml on the HSS', default='default_ifc.xml', type=str)
 @click.pass_context
 def add_ims_subscriber(ctx, imsi, msisdn, icf):
 
@@ -519,6 +519,7 @@ def add_ims_subscriber(ctx, imsi, msisdn, icf):
             'imsi': imsi,
             'msisdn': primary_msisdn,
             'msisdn_list': additional,
+            'ifc_path': ifc,
         }
 
         try:
