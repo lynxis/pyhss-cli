@@ -44,7 +44,7 @@ def get_headers(ctx: click.Context) -> dict:
         return {'Provisioning-Key': ctx.obj['APIKEY']}
     return {}
 
-CONTEXT_SETTINGS = dict(show_default=True)
+CONTEXT_SETTINGS = {'show_default': True}
 
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.option('--api', help='Url to the pyhss API.', type=str, default="http://127.0.0.1:8080", envvar='PYHSS_API')
@@ -387,7 +387,7 @@ def list_subscribers(ctx, imsi, display, page, limit):
             subscribers = [subscriber]
         else:
             try:
-                resp = client.get(f'{api}/subscriber/list', params=dict(page_size=limit, page=page))
+                resp = client.get(f'{api}/subscriber/list', params={'page_size': limit, 'page': page})
                 resp.raise_for_status()
                 subscribers = resp.json()
             except httpx.HTTPStatusError as exp:
@@ -596,7 +596,7 @@ def list_ims_subscribers(ctx, imsi, msisdn, display, page, limit):
             subscribers = [subscriber]
         else:
             try:
-                resp = client.get(f'{api}/ims_subscriber/list', params=dict(page_size=limit, page=page))
+                resp = client.get(f'{api}/ims_subscriber/list', params={'page_size': limit, 'page': page})
                 resp.raise_for_status()
                 subscribers = resp.json()
             except httpx.HTTPStatusError as exp:
