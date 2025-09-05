@@ -481,19 +481,19 @@ def list_apns(ctx, apn, display):
             display = 'id'
 
     if display == 'long':
-        for apn in apns:
-            for field in apn:
+        for _apn in apns:
+            for field in _apn:
                 if field == 'apn':
                     continue
 
                 click.echo(f"{apn['apn']}, {field}: {apn[field]}")
     elif display == 'brief':
-        for apn in apns:
+        for _apn in apns:
             for field in brief_fields:
-                click.echo(f"{apn['apn']}, {field}: {apn[field]}")
+                click.echo(f"{_apn['apn']}, {field}: {_apn[field]}")
     elif display == 'id':
-        for apn in apns:
-            click.echo(f"{apn['apn']}: id {apn['apn_id']}")
+        for _apn in apns:
+            click.echo(f"{_apn['apn']}: id {_apn['apn_id']}")
 
 @cli.command()
 @click.argument('imsi', type=str)
