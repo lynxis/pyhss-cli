@@ -4,6 +4,7 @@ pyhss-cli is a command line interface to interact with PyHSS using
 the REST interface.
 
 PyHSS is a LTE HSS and PCRF. For further details see the [PyHSS](https://github.com/nickvsnetworking/pyhss).
+The main repository can be found on [codeberg/lynxis/pyhss-cli](https://codeberg.org/lynxis/PyHSS-cli).
 
 Please use `pyhss-cli --help` for all available commands.
 
